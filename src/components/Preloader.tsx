@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 
 interface PreloaderProps {
@@ -12,35 +12,22 @@ export default function Preloader({ onComplete }: PreloaderProps) {
   const nameRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLDivElement>(null)
   const lineRef = useRef<HTMLDivElement>(null)
-  const counterRef = useRef<HTMLDivElement>(null)
-  const [count, setCount] = useState(0)
 
   useEffect(() => {
     document.body.classList.add('loading')
 
-    // Animate counter 0 → 100
-    const obj = { val: 0 }
-    const counterTl = gsap.to(obj, {
-      val: 100,
-      duration: 2.2,
-      ease: 'power2.inOut',
-      onUpdate: () => {
-        const v = Math.round(obj.val)
-        setCount(v)
-        if (counterRef.current) {
-          counterRef.current.textContent = `${String(v).padStart(2, '0')}`
-        }
-      },
-      onComplete: () => {
-        exitPreloader()
-      },
-    })
-
     // Animate the line width
-    gsap.fromTo(
+    const lineTl = gsap.fromTo(
       lineRef.current,
       { scaleX: 0, transformOrigin: 'left' },
-      { scaleX: 1, duration: 2.2, ease: 'power2.inOut' }
+      {
+        scaleX: 1,
+        duration: 1.8,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          exitPreloader()
+        },
+      }
     )
 
     // Entrance animations
@@ -50,7 +37,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       .fromTo(titleRef.current, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, 0.45)
 
     return () => {
-      counterTl.kill()
+      lineTl.kill()
       entranceTl.kill()
     }
   }, [])
@@ -65,7 +52,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
     })
 
     // Split screen open — top panel slides up, bottom panel slides down
-    tl.to([nameRef.current, titleRef.current, counterRef.current, lineRef.current], {
+    tl.to([nameRef.current, titleRef.current, lineRef.current], {
       opacity: 0,
       duration: 0.35,
       ease: 'power2.in',
@@ -97,7 +84,6 @@ export default function Preloader({ onComplete }: PreloaderProps) {
         <div className="preloader-progress-wrap">
           <div className="preloader-progress-bar" ref={lineRef} />
         </div>
-        <div className="preloader-counter" ></div>
       </div>
     </div>
   )

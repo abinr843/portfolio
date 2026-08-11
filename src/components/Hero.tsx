@@ -2,7 +2,7 @@ import { useEffect, useRef, lazy, Suspense } from 'react'
 import { useSpring, animated } from '@react-spring/web'
 import gsap from 'gsap'
 import { Download, ArrowRight } from 'lucide-react'
-import profileImg from '../assets/profile.png'
+
 
 const ThreeScene = lazy(() => import('./ThreeScene'))
 
@@ -52,7 +52,6 @@ export default function Hero() {
   const taglineRef = useRef<HTMLParagraphElement>(null)
   const ctasRef = useRef<HTMLDivElement>(null)
   const portraitRef = useRef<HTMLImageElement>(null)
-  const deco2Ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const tl = gsap.timeline({ delay: 0.3 })
@@ -63,11 +62,6 @@ export default function Hero() {
       .to(taglineRef.current, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.4')
       .to(ctasRef.current, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3')
       .to(portraitRef.current, { opacity: 1, duration: 1.0, ease: 'power2.out' }, '-=0.6')
-      .to(
-        deco2Ref.current,
-        { opacity: 1, duration: 0.5, ease: 'power2.out' },
-        '-=0.8'
-      )
 
     return () => { tl.kill() }
   }, [])
@@ -78,6 +72,11 @@ export default function Hero() {
 
   return (
     <section id="hero" className="hero-section" ref={sectionRef}>
+      {/* 3D Flow Field Wave Background — Spans Full Screen Left to Right */}
+      <Suspense fallback={null}>
+        <ThreeScene />
+      </Suspense>
+
       <div className="hero-inner">
         {/* Left — Text Content */}
         <div className="hero-left">
@@ -118,27 +117,8 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Right — Portrait + 3D */}
-        <div className="hero-right">
-          {/* Decorative Blocks */}
-          <div className="deco-block deco-block-2" ref={deco2Ref} />
-
-          {/* Three.js Scene */}
-          <Suspense fallback={null}>
-            <ThreeScene />
-          </Suspense>
-
-          {/* Portrait */}
-          <div className="hero-portrait-wrap">
-            <img
-              ref={portraitRef}
-              src={profileImg}
-              alt="Abin R Philip"
-              className="hero-portrait"
-              loading="eager"
-            />
-          </div>
-        </div>
+        {/* Right — Portrait */}
+      
       </div>
     </section>
   )

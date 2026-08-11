@@ -1,83 +1,108 @@
-import { useRef, useEffect, Suspense, lazy } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Float } from '@react-three/drei'
+import { useRef, useEffect, Suspense, useMemo } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import gsap from 'gsap'
 
-// Individual floating box
-function FloatingBox({
-  position,
-  rotation,
-  scale,
-  color,
-  speed,
-}: {
-  position: [number, number, number]
-  rotation: [number, number, number]
-  scale: [number, number, number]
-  color: string
-  speed: number
-}) {
+// ─── 3D Particle Wave / Flow Field Wireframe ─────────────────────────
+function FlowFieldWave({ mouseRef }: { mouseRef: React.RefObject<{ x: number; y: number }> }) {
   const meshRef = useRef<THREE.Mesh>(null)
+  const pointsRef = useRef<THREE.Points>(null)
+  const meshMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const pointsMatRef = useRef<THREE.PointsMaterial>(null)
+
+  // Mesh resolution & dimensions to cover full widescreen perspective
+  const width = 36
+  const height = 18
+  const widthSegments = 90
+  const heightSegments = 45
+
+  // Create geometry once with plane orientation
+  const { geometry, originalPositions } = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments)
+    const posAttr = geo.attributes.position
+    const count = posAttr.count
+    const orig = new Float32Array(count * 3)
+    for (let i = 0; i < count * 3; i++) {
+      orig[i] = posAttr.array[i]
+    }
+    return { geometry: geo, originalPositions: orig }
+  }, [])
+
+  useEffect(() => {
+    if (!meshMatRef.current || !pointsMatRef.current) return
+    meshMatRef.current.opacity = 0
+    pointsMatRef.current.opacity = 0
+
+    // Smooth fade-in on load
+    gsap.to(meshMatRef.current, {
+      opacity: 0.18,
+      duration: 2.2,
+      delay: 0.2,
+      ease: 'power2.out',
+    })
+    gsap.to(pointsMatRef.current, {
+      opacity: 0.35,
+      duration: 2.2,
+      delay: 0.4,
+      ease: 'power2.out',
+    })
+  }, [])
 
   useFrame((state) => {
-    if (!meshRef.current) return
-    meshRef.current.rotation.x += 0.002 * speed
-    meshRef.current.rotation.y += 0.003 * speed
+    if (!geometry) return
+    const time = state.clock.getElapsedTime() * 0.6
+    const posAttr = geometry.attributes.position
+    const array = posAttr.array as Float32Array
+
+    const mouseX = mouseRef.current ? mouseRef.current.x * 0.4 : 0
+    const mouseY = mouseRef.current ? mouseRef.current.y * 0.3 : 0
+
+    for (let i = 0; i < posAttr.count; i++) {
+      const ix = i * 3
+      const x = originalPositions[ix]
+      const y = originalPositions[ix + 1]
+
+      // Multi-layered organic wave calculation
+      const z =
+        Math.sin(x * 0.28 + time + mouseX) * 0.55 +
+        Math.cos(y * 0.32 + time * 0.75 + mouseY) * 0.45 +
+        Math.sin((x * 0.18 + y * 0.25) + time * 0.5) * 0.35
+
+      array[ix + 2] = z
+    }
+
+    posAttr.needsUpdate = true
   })
 
   return (
-    <Float
-      speed={speed}
-      rotationIntensity={0.4}
-      floatIntensity={0.8}
-      floatingRange={[-0.15, 0.15]}
-    >
-      <mesh ref={meshRef} position={position} rotation={rotation} scale={scale}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={0.15}
-          metalness={0.7}
+    <group position={[0, -2.0, -2.5]} rotation={[-Math.PI / 2.4, 0, 0]}>
+      {/* Curved Flowing Wireframe Mesh */}
+      <mesh ref={meshRef} geometry={geometry}>
+        <meshBasicMaterial
+          ref={meshMatRef}
+          color="#333344"
+          wireframe
+          transparent
+          opacity={0}
         />
       </mesh>
-    </Float>
-  )
-}
 
-// Scene with mouse parallax
-function Scene({ mouseRef }: { mouseRef: React.RefObject<{ x: number; y: number }> }) {
-  const groupRef = useRef<THREE.Group>(null)
-
-  const boxes = [
-    { position: [1.8, 1.2, -2] as [number, number, number],  rotation: [0.5, 0.3, 0.1] as [number, number, number],  scale: [1.0, 1.0, 1.0] as [number, number, number],  color: '#111111', speed: 0.8 },
-    { position: [-1.5, -0.8, -3] as [number, number, number], rotation: [0.2, 0.7, 0.3] as [number, number, number], scale: [0.75, 0.75, 0.75] as [number, number, number], color: '#1a1a1a', speed: 1.1 },
-    { position: [2.5, -1.5, -4] as [number, number, number],  rotation: [0.8, 0.1, 0.5] as [number, number, number],  scale: [1.2, 1.2, 1.2] as [number, number, number],  color: '#0a0a0a', speed: 0.6 },
-    { position: [-2.2, 1.5, -5] as [number, number, number],  rotation: [0.3, 0.9, 0.2] as [number, number, number],  scale: [0.85, 0.85, 0.85] as [number, number, number], color: '#222222', speed: 1.3 },
-    { position: [0.5, 2.2, -3.5] as [number, number, number], rotation: [0.6, 0.4, 0.8] as [number, number, number], scale: [0.6, 0.6, 0.6] as [number, number, number], color: '#0d0d0d', speed: 0.9 },
-    { position: [-0.8, -2.2, -2.5] as [number, number, number], rotation: [0.1, 0.6, 0.4] as [number, number, number], scale: [0.7, 0.7, 0.7] as [number, number, number], color: '#181818', speed: 1.4 },
-    { position: [3.0, 0.2, -6] as [number, number, number],  rotation: [0.7, 0.2, 0.6] as [number, number, number],  scale: [1.3, 1.3, 1.3] as [number, number, number],  color: '#141414', speed: 0.7 },
-    { position: [-3.0, -0.5, -4.5] as [number, number, number], rotation: [0.4, 0.8, 0.1] as [number, number, number], scale: [0.95, 0.95, 0.95] as [number, number, number], color: '#0f0f0f', speed: 1.0 },
-  ]
-
-  useFrame(() => {
-    if (!groupRef.current || !mouseRef.current) return
-    const { x, y } = mouseRef.current
-    groupRef.current.rotation.y += (x * 0.08 - groupRef.current.rotation.y) * 0.04
-    groupRef.current.rotation.x += (-y * 0.06 - groupRef.current.rotation.x) * 0.04
-  })
-
-  return (
-    <group ref={groupRef}>
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
-      <pointLight position={[-3, -3, 2]} intensity={0.8} color="#333333" />
-      {boxes.map((box, i) => (
-        <FloatingBox key={i} {...box} />
-      ))}
+      {/* Hundreds of Connected Points / Nodes at Grid Intersections */}
+      <points ref={pointsRef} geometry={geometry}>
+        <pointsMaterial
+          ref={pointsMatRef}
+          color="#111122"
+          size={0.045}
+          transparent
+          opacity={0}
+          sizeAttenuation
+        />
+      </points>
     </group>
   )
 }
 
+// ─── Main Three.js Scene Component ───────────────────────────────────────────
 export default function ThreeScene() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -105,7 +130,7 @@ export default function ThreeScene() {
         dpr={[1, 1.5]}
       >
         <Suspense fallback={null}>
-          <Scene mouseRef={mouseRef} />
+          <FlowFieldWave mouseRef={mouseRef} />
         </Suspense>
       </Canvas>
     </div>
