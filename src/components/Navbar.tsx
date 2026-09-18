@@ -1,90 +1,48 @@
-import { useRef, useState } from 'react'
-import { useNavTheme } from '../hooks/useNavTheme'
+import { useEffect, useState } from 'react'
+import { ArrowUpRight, Menu, Moon, X } from 'lucide-react'
 
-const NAV_LINKS = [
-  { label: 'Home', href: '#hero' },
-  { label: 'About', href: '#about' },
-  { label: 'Experience', href: '#experience' },
-  { label: 'Projects', href: '#projects' },
-  { label: 'Contact', href: '#contact' },
-]
+const links = [['Home', 'hero'], ['About', 'about'], ['Experience', 'experience'], ['Projects', 'projects'], ['Contact', 'contact']]
+const navigate = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
 export default function Navbar() {
-  const navRef = useRef<HTMLElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-
-  useNavTheme(navRef)
-
-  const handleNavClick = (href: string) => {
-    setMenuOpen(false)
-    const el = document.querySelector(href)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' })
+  const [scrolled, setScrolled] = useState(false)
+  const [active, setActive] = useState('hero')
+  useEffect(() => {
+    const update = () => {
+      setScrolled(window.scrollY > 32)
+      const current = [...links].reverse().find(([, id]) => {
+        const el = document.getElementById(id)
+        return el && el.getBoundingClientRect().top < window.innerHeight * 0.42
+      })
+      if (current) setActive(current[1])
     }
-  }
-
+    update(); window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
+  useEffect(() => {
+    document.body.classList.toggle('menu-open', menuOpen)
+    return () => document.body.classList.remove('menu-open')
+  }, [menuOpen])
+  const choose = (id: string) => { setMenuOpen(false); window.setTimeout(() => navigate(id), 20) }
   return (
     <>
-      <nav className="navbar" ref={navRef} data-theme="dark">
-        <div className="navbar-inner">
-          <div className="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            AP
-          </div>
-
-          <ul className="navbar-links">
-            {NAV_LINKS.map((link) => (
-              <li key={link.href}>
-                <a
-                  href={link.href}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleNavClick(link.href)
-                  }}
-                >
-                  {link.label.toUpperCase()}
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          {/* Hamburger */}
-          <div
-            className="navbar-hamburger"
-            onClick={() => setMenuOpen((p) => !p)}
-            aria-label="Toggle menu"
-            role="button"
-            tabIndex={0}
-          >
-            <span
-              style={{
-                transform: menuOpen ? 'translateY(6.5px) rotate(45deg)' : 'none',
-              }}
-            />
-            <span style={{ opacity: menuOpen ? 0 : 1 }} />
-            <span
-              style={{
-                transform: menuOpen ? 'translateY(-6.5px) rotate(-45deg)' : 'none',
-              }}
-            />
-          </div>
+      <header className={`nav ${scrolled ? 'nav--scrolled' : ''}`}>
+        <button className="monogram" aria-label="Back to home" onClick={() => navigate('hero')}>AR<span>°</span></button>
+        <nav className="nav-links" aria-label="Primary navigation">
+          {links.map(([label, id]) => <button className={active === id ? 'is-active' : ''} onClick={() => choose(id)} key={id}>{label}</button>)}
+        </nav>
+        <div className="nav-actions">
+          <button className="round-icon" aria-label="Switch appearance"><Moon size={14} /></button>
+          <button className="talk-button" onClick={() => choose('contact')}>Let&apos;s Talk <ArrowUpRight size={14} /></button>
+          <button className="menu-button" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={21} /> : <Menu size={21} />}</button>
         </div>
-      </nav>
-
-      {/* Mobile menu overlay */}
-      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        {NAV_LINKS.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            onClick={(e) => {
-              e.preventDefault()
-              handleNavClick(link.href)
-            }}
-          >
-            {link.label}
-          </a>
-        ))}
-      </div>
+      </header>
+      <aside className={`mobile-nav ${menuOpen ? 'mobile-nav--open' : ''}`} aria-hidden={!menuOpen}>
+        <p className="section-kicker">Navigate</p>
+        {links.map(([label, id], i) => <button onClick={() => choose(id)} key={id} style={{ transitionDelay: `${100 + i * 45}ms` }}>{label}</button>)}
+        <p className="mobile-nav__note">Build · Learn · Grow</p>
+      </aside>
     </>
   )
 }

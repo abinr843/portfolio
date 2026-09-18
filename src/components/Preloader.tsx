@@ -1,89 +1,37 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 
-interface PreloaderProps {
-  onComplete: () => void
-}
-
-export default function Preloader({ onComplete }: PreloaderProps) {
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const topPanelRef = useRef<HTMLDivElement>(null)
-  const bottomPanelRef = useRef<HTMLDivElement>(null)
-  const nameRef = useRef<HTMLDivElement>(null)
-  const titleRef = useRef<HTMLDivElement>(null)
-  const lineRef = useRef<HTMLDivElement>(null)
+export default function Preloader({ onComplete }: { onComplete: () => void }) {
+  const root = useRef<HTMLDivElement>(null)
+  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    document.body.classList.add('loading')
-
-    // Animate the line width
-    const lineTl = gsap.fromTo(
-      lineRef.current,
-      { scaleX: 0, transformOrigin: 'left' },
-      {
-        scaleX: 1,
-        duration: 1.8,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          exitPreloader()
-        },
-      }
-    )
-
-    // Entrance animations
-    const entranceTl = gsap.timeline()
-    entranceTl
-      .fromTo(nameRef.current, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, 0.2)
-      .fromTo(titleRef.current, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, 0.45)
-
-    return () => {
-      lineTl.kill()
-      entranceTl.kill()
-    }
-  }, [])
-
-  const exitPreloader = () => {
-    const tl = gsap.timeline({
-      onComplete: () => {
-        if (wrapRef.current) wrapRef.current.style.display = 'none'
-        document.body.classList.remove('loading')
-        onComplete()
-      },
-    })
-
-    // Split screen open — top panel slides up, bottom panel slides down
-    tl.to([nameRef.current, titleRef.current, lineRef.current], {
-      opacity: 0,
-      duration: 0.35,
-      ease: 'power2.in',
-    })
-      .to(topPanelRef.current, {
-        yPercent: -100,
-        duration: 0.85,
-        ease: 'power4.inOut',
-      }, '-=0.1')
-      .to(bottomPanelRef.current, {
-        yPercent: 100,
-        duration: 0.85,
-        ease: 'power4.inOut',
-      }, '<')
-  }
+    const counter = { value: 0 }
+    const ctx = gsap.context(() => {
+      const timeline = gsap.timeline({ onComplete })
+      timeline
+        .from('.loader-mark', { opacity: 0, y: 14, duration: 0.45, ease: 'power3.out' })
+        .from('.loader-copy', { opacity: 0, y: 10, duration: 0.35, ease: 'power2.out' }, '-=0.2')
+        .to(counter, { value: 100, duration: 1.1, ease: 'power2.inOut', onUpdate: () => setProgress(Math.round(counter.value)) }, '-=0.1')
+        .to('.loader-bar__fill', { scaleX: 1, duration: 1.1, ease: 'power2.inOut' }, '<')
+        .to('.loader-content', { opacity: 0, y: -12, duration: 0.35, ease: 'power2.in' })
+        .to('.loader-panel--top', { yPercent: -100, duration: 0.72, ease: 'power4.inOut' }, '-=0.05')
+        .to('.loader-panel--bottom', { yPercent: 100, duration: 0.72, ease: 'power4.inOut' }, '<')
+        .to(root.current, { autoAlpha: 0, duration: 0.01 })
+      return () => timeline.kill()
+    }, root)
+    return () => ctx.revert()
+  }, [onComplete])
 
   return (
-    <div id="preloader" ref={wrapRef}>
-      {/* Split panels */}
-      <div className="preloader-panel preloader-top" ref={topPanelRef} />
-      <div className="preloader-panel preloader-bottom" ref={bottomPanelRef} />
-
-      {/* Center content */}
-      <div className="preloader-content">
-        <div className="preloader-name" ref={nameRef}>ABIN R PHILIP</div>
-        <div className="preloader-title-line">
-          <div className="preloader-title" ref={titleRef}>PYTHON FULL STACK DEVELOPER</div>
-        </div>
-        <div className="preloader-progress-wrap">
-          <div className="preloader-progress-bar" ref={lineRef} />
-        </div>
+    <div className="loader" ref={root} aria-label="Loading portfolio" role="status">
+      <div className="loader-panel loader-panel--top" />
+      <div className="loader-panel loader-panel--bottom" />
+      <div className="loader-content">
+        <div className="loader-mark">AR<span>°</span></div>
+        <p className="loader-copy">Independent digital builder</p>
+        <div className="loader-bar"><span className="loader-bar__fill" /></div>
+        <div className="loader-progress">{String(progress).padStart(3, '0')}%</div>
       </div>
     </div>
   )

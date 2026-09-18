@@ -1,138 +1,43 @@
-import { useRef, useEffect, Suspense, useMemo } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import gsap from 'gsap'
 
-// ─── 3D Particle Wave / Flow Field Wireframe ─────────────────────────
-function FlowFieldWave({ mouseRef }: { mouseRef: React.RefObject<{ x: number; y: number }> }) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const pointsRef = useRef<THREE.Points>(null)
-  const meshMatRef = useRef<THREE.MeshBasicMaterial>(null)
-  const pointsMatRef = useRef<THREE.PointsMaterial>(null)
-
-  // Mesh resolution & dimensions to cover full widescreen perspective
-  const width = 36
-  const height = 18
-  const widthSegments = 90
-  const heightSegments = 45
-
-  // Create geometry once with plane orientation
-  const { geometry, originalPositions } = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments)
-    const posAttr = geo.attributes.position
-    const count = posAttr.count
-    const orig = new Float32Array(count * 3)
-    for (let i = 0; i < count * 3; i++) {
-      orig[i] = posAttr.array[i]
+function OrbitalForm() {
+  const group = useRef<THREE.Group>(null)
+  const halo = useRef<THREE.Mesh>(null)
+  const mouse = useRef({ x: 0, y: 0 })
+  const points = useMemo(() => {
+    const array = new Float32Array(170 * 3)
+    for (let i = 0; i < array.length; i += 3) {
+      const radius = 1.65 + Math.random() * 1.6
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      array[i] = radius * Math.sin(phi) * Math.cos(theta)
+      array[i + 1] = radius * Math.sin(phi) * Math.sin(theta)
+      array[i + 2] = radius * Math.cos(phi)
     }
-    return { geometry: geo, originalPositions: orig }
+    return array
   }, [])
-
   useEffect(() => {
-    if (!meshMatRef.current || !pointsMatRef.current) return
-    meshMatRef.current.opacity = 0
-    pointsMatRef.current.opacity = 0
-
-    // Smooth fade-in on load
-    gsap.to(meshMatRef.current, {
-      opacity: 0.18,
-      duration: 2.2,
-      delay: 0.2,
-      ease: 'power2.out',
-    })
-    gsap.to(pointsMatRef.current, {
-      opacity: 0.35,
-      duration: 2.2,
-      delay: 0.4,
-      ease: 'power2.out',
-    })
+    const move = (event: MouseEvent) => { mouse.current = { x: event.clientX / window.innerWidth - .5, y: event.clientY / window.innerHeight - .5 } }
+    window.addEventListener('mousemove', move)
+    return () => window.removeEventListener('mousemove', move)
   }, [])
-
-  useFrame((state) => {
-    if (!geometry) return
-    const time = state.clock.getElapsedTime() * 0.6
-    const posAttr = geometry.attributes.position
-    const array = posAttr.array as Float32Array
-
-    const mouseX = mouseRef.current ? mouseRef.current.x * 0.4 : 0
-    const mouseY = mouseRef.current ? mouseRef.current.y * 0.3 : 0
-
-    for (let i = 0; i < posAttr.count; i++) {
-      const ix = i * 3
-      const x = originalPositions[ix]
-      const y = originalPositions[ix + 1]
-
-      // Multi-layered organic wave calculation
-      const z =
-        Math.sin(x * 0.28 + time + mouseX) * 0.55 +
-        Math.cos(y * 0.32 + time * 0.75 + mouseY) * 0.45 +
-        Math.sin((x * 0.18 + y * 0.25) + time * 0.5) * 0.35
-
-      array[ix + 2] = z
-    }
-
-    posAttr.needsUpdate = true
+  useFrame(({ clock }) => {
+    if (!group.current) return
+    group.current.rotation.y += .0018
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, mouse.current.y * .25, .03)
+    group.current.rotation.y += mouse.current.x * .0005
+    if (halo.current) halo.current.rotation.z = clock.elapsedTime * .08
   })
-
-  return (
-    <group position={[0, -2.0, -2.5]} rotation={[-Math.PI / 2.4, 0, 0]}>
-      {/* Curved Flowing Wireframe Mesh */}
-      <mesh ref={meshRef} geometry={geometry}>
-        <meshBasicMaterial
-          ref={meshMatRef}
-          color="#333344"
-          wireframe
-          transparent
-          opacity={0}
-        />
-      </mesh>
-
-      {/* Hundreds of Connected Points / Nodes at Grid Intersections */}
-      <points ref={pointsRef} geometry={geometry}>
-        <pointsMaterial
-          ref={pointsMatRef}
-          color="#111122"
-          size={0.045}
-          transparent
-          opacity={0}
-          sizeAttenuation
-        />
-      </points>
-    </group>
-  )
+  return <group ref={group} position={[1.6, .05, 0]}>
+    <mesh ref={halo} rotation={[1.03, .3, 0]}><torusGeometry args={[2.25, .009, 6, 110]} /><meshBasicMaterial color="#e7e7e4" transparent opacity={.28} /></mesh>
+    <mesh rotation={[.3, .2, .2]}><icosahedronGeometry args={[1.08, 1]} /><meshBasicMaterial color="#dadad6" wireframe transparent opacity={.13} /></mesh>
+    <points><bufferGeometry><bufferAttribute attach="attributes-position" args={[points, 3]} /></bufferGeometry><pointsMaterial color="#e9e9e6" size={.022} sizeAttenuation transparent opacity={.32} /></points>
+  </group>
 }
 
-// ─── Main Three.js Scene Component ───────────────────────────────────────────
 export default function ThreeScene() {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
-
-  useEffect(() => {
-    if (isMobile) return
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = {
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
-        y: -(e.clientY / window.innerHeight - 0.5) * 2,
-      }
-    }
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [isMobile])
-
-  if (isMobile) return null
-
-  return (
-    <div className="three-canvas-wrap">
-      <Canvas
-        camera={{ position: [0, 0, 6], fov: 50 }}
-        style={{ background: 'transparent' }}
-        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
-        dpr={[1, 1.5]}
-      >
-        <Suspense fallback={null}>
-          <FlowFieldWave mouseRef={mouseRef} />
-        </Suspense>
-      </Canvas>
-    </div>
-  )
+  if (typeof window !== 'undefined' && window.innerWidth < 900) return null
+  return <div className="hero-scene" aria-hidden="true"><Canvas camera={{ position: [0, 0, 7], fov: 42 }} dpr={[1, 1.3]} gl={{ alpha: true, antialias: false, powerPreference: 'high-performance' }}><OrbitalForm /></Canvas></div>
 }
