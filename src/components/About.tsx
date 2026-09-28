@@ -7,9 +7,9 @@ import portrait from '../assets/profile.png'
 gsap.registerPlugin(ScrollTrigger)
 
 const facts = [
-  [GraduationCap, 'Education', 'BCA (2025)'],
+  [GraduationCap, 'Education', 'Masters in Computer Science, Musaliar College of Engineering and Technology'],
   [MapPin, 'From', 'Kerala, India'],
-  [Laptop, 'Currently exploring', 'Masters in Computer Application · Tech opportunities'],
+  [Laptop, 'Currently exploring', 'Tech opportunities'],
   [Heart, 'Interests', 'AI, Web development, cricket'],
 ]
 

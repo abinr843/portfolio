@@ -5,8 +5,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(ScrollTrigger)
 
 const journey = [
-  { when: '2024', role: 'Python Developer Intern', org: 'SLBS Marklance', detail: 'Worked on web development and a tour booking application using Django.' },
-  { when: '2024 — Present', role: 'Freelance & Personal Projects', org: 'Independent', detail: 'Building real-world product ideas such as Auction Hub, TourEase, SolarMax and more.' },
+  { when: '03/2025 – 07/2025', role: 'Python Developer Intern', org: 'SLBS Marklance', detail: 'Built backend modules using Python and Django. Developed REST APIs, designed MySQL schemas, integrated Razorpay, and collaborated in an Agile team.' },
+  { when: '2024 — Present', role: 'Freelance & Personal Projects', org: 'Independent', detail: 'Building real-world product ideas such as Auction Hub, TourEase and more.' },
+  { when: '2022 – 2025', role: 'Bachelor of Computer Application (BCA)', org: 'University of Kerala', detail: 'Built a strong foundation in computer science, software development, and programming principles.' },
   { when: 'Always', role: 'Continuous Learning', org: 'Self Driven', detail: 'Exploring AI, system design, and building more thoughtful digital solutions.' },
 ]
 

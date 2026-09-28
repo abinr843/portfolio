@@ -1,6 +1,5 @@
 import auctionHub from '../assets/auction_hub.png'
 import tourEase from '../assets/tourease.png'
-import solarMax from '../assets/eclipse.png'
 import bikeTracker from '../assets/biketracker.png'
 
 export type Project = {
@@ -44,19 +43,7 @@ export const projects: Project[] = [
     features: ['Multi-role access', 'Tour discovery', 'Booking management', 'Payment webhooks'],
     github: 'https://github.com/abinr843/TourEase',
   },
-  {
-    slug: 'solar-max',
-    title: 'SolarMax',
-    eyebrow: 'Smart systems',
-    description: 'Smart energy management and net-metering platform.',
-    image: solarMax,
-    technologies: ['Django', 'Python 3.13', 'Smart Systems'],
-    overview: 'A focused platform for making energy usage, solar generation, and net-metering data understandable at a glance.',
-    problem: 'Energy data can be difficult to interpret without a clear operational view of what is generated, used, and returned.',
-    solution: 'Designed a data-focused product surface that makes energy insights more actionable for everyday decisions.',
-    features: ['Energy summaries', 'Net-metering insights', 'Usage history', 'Operational dashboards'],
-    github: 'https://github.com/abinr843',
-  },
+
   {
     slug: 'bike-tracker',
     title: 'BikeTracker',
